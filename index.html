@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="apple-touch-icon" href="https://augustineiacopelli.github.io/appaday/icons/156.png">
+<meta name="apple-mobile-web-app-title" content="Tip Splitter">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Tip Splitter | AppADay 156</title>
+<meta name="description" content="Split a restaurant check in seconds. Bill, tip chips or a custom percent, party size, live per person shares, and a round up toggle that shows the true tip.">
+<meta name="theme-color" content="#0f1714">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0f1714;
+  --ink-2:#16211d;
+  --ink-3:#1e2c27;
+  --line:rgba(208,232,220,.14);
+  --text:#e9f2ed;
+  --muted:#9db3a8;
+  --accent:#289664;
+  --accent-l:#3fc187;
+  --accent-d:#1d6f4a;
+  --paper:#f6f1e4;
+  --paper-ink:#24221d;
+  --paper-mute:#6f6a5c;
+  --danger:#e0664f;
+  --radius:16px;
+  --sans:'Space Grotesk',system-ui,-apple-system,Segoe UI,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;min-height:100dvh;display:flex;flex-direction:column;
+  background:radial-gradient(120% 70% at 50% -10%,#1b3a2d 0%,var(--ink) 60%) fixed,var(--ink);
+  color:var(--text);font-family:var(--sans);font-size:1rem;line-height:1.45;
+  padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);
+}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent-l);outline-offset:2px}
+
+/* Header */
+.topbar{
+  display:flex;align-items:center;gap:.6rem;
+  padding:calc(.6rem + env(safe-area-inset-top)) 1rem .6rem;
+  border-bottom:1px solid var(--line);background:rgba(15,23,20,.85);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  position:sticky;top:0;z-index:5;
+}
+.topbar .num{
+  font-family:var(--mono);font-weight:600;font-size:.8rem;letter-spacing:.06em;
+  background:var(--accent);color:#fff;border-radius:8px;padding:.2rem .5rem;
+}
+.topbar .name{font-weight:700;font-size:1.05rem;letter-spacing:.01em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar a{
+  color:var(--muted);font-size:.85rem;text-decoration:none;min-height:44px;
+  display:inline-flex;align-items:center;padding:0 .4rem;border-radius:8px;
+}
+.topbar a:hover{color:var(--text)}
+.gear{
+  min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  background:transparent;border:1px solid var(--line);border-radius:12px;color:var(--accent-l);
+}
+.gear:hover{background:rgba(63,193,135,.12)}
+
+/* Layout */
+main{
+  flex:1;width:100%;padding:1.25rem 1rem 1.5rem;
+  display:grid;gap:1.25rem;grid-template-columns:minmax(0,1fr);
+  align-content:start;
+}
+@media (min-width:820px){
+  main{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);padding:2rem clamp(1.5rem,5vw,4rem);gap:2rem;align-items:start;max-width:1120px;margin:0 auto}
+}
+.card{
+  background:linear-gradient(180deg,var(--ink-2),var(--ink-3));
+  border:1px solid var(--line);border-radius:var(--radius);padding:1.1rem;
+}
+.field + .field{margin-top:1.35rem}
+.label{
+  display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;
+  font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);
+  margin-bottom:.55rem;
+}
+.label .hint{text-transform:none;letter-spacing:0;font-weight:500;font-size:.8rem}
+
+/* Bill */
+.bill-wrap{
+  display:flex;align-items:center;gap:.4rem;background:var(--ink);
+  border:1.5px solid var(--line);border-radius:14px;padding:0 .9rem;min-height:72px;
+  transition:border-color .15s;
+}
+.bill-wrap:focus-within{border-color:var(--accent-l)}
+.cur{font-family:var(--mono);font-size:1.6rem;color:var(--accent-l);font-weight:500;flex:none}
+#bill{
+  flex:1;min-width:0;border:0;background:transparent;outline:none;
+  font-family:var(--mono);font-size:clamp(1.9rem,8vw,2.4rem);font-weight:600;letter-spacing:-.01em;
+  padding:.4rem 0;
+}
+#bill::placeholder{color:#4d6158}
+.clear-bill{
+  flex:none;min-width:44px;min-height:44px;border:0;background:transparent;color:var(--muted);
+  border-radius:10px;font-size:1.3rem;line-height:1;
+}
+.clear-bill:hover{color:var(--text);background:rgba(255,255,255,.06)}
+.clear-bill[hidden]{display:none}
+
+/* Tip chips */
+.chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem}
+.chip{
+  min-height:52px;border-radius:12px;border:1.5px solid var(--line);background:var(--ink);
+  font-family:var(--mono);font-weight:600;font-size:1.05rem;transition:background .15s,border-color .15s,color .15s,transform .1s;
+}
+.chip:hover{border-color:rgba(63,193,135,.5)}
+.chip:active{transform:scale(.97)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 6px 18px -8px rgba(40,150,100,.8)}
+.custom{
+  margin-top:.55rem;display:flex;align-items:center;gap:.5rem;background:var(--ink);
+  border:1.5px solid var(--line);border-radius:12px;padding:0 .9rem;min-height:52px;
+}
+.custom.active{border-color:var(--accent-l)}
+.custom label{font-size:.9rem;color:var(--muted);flex:none}
+#customTip{
+  flex:1;min-width:0;border:0;background:transparent;outline:none;text-align:right;
+  font-family:var(--mono);font-weight:600;font-size:1.1rem;padding:.6rem 0;
+}
+#customTip::placeholder{color:#4d6158;font-weight:400}
+.custom .pct{font-family:var(--mono);color:var(--muted);flex:none}
+
+/* Stepper */
+.stepper{display:grid;grid-template-columns:64px minmax(0,1fr) 64px;align-items:center;gap:.5rem}
+.step{
+  min-height:56px;border-radius:14px;border:1.5px solid var(--line);background:var(--ink);
+  font-size:1.6rem;font-weight:500;line-height:1;display:flex;align-items:center;justify-content:center;
+  transition:background .15s,transform .1s;
+}
+.step:hover:not(:disabled){background:rgba(63,193,135,.12);border-color:rgba(63,193,135,.5)}
+.step:active:not(:disabled){transform:scale(.95)}
+.step:disabled{opacity:.35;cursor:not-allowed}
+.party{text-align:center}
+.party b{display:block;font-family:var(--mono);font-size:2rem;font-weight:600;line-height:1.1}
+.party span{font-size:.82rem;color:var(--muted)}
+
+/* Round up toggle */
+.toggle{
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;width:100%;
+  min-height:60px;padding:.6rem .9rem;border-radius:14px;border:1.5px solid var(--line);background:var(--ink);text-align:left;
+}
+.toggle .t-text b{display:block;font-weight:600}
+.toggle .t-text span{font-size:.84rem;color:var(--muted)}
+.switch{
+  flex:none;width:52px;height:30px;border-radius:999px;background:#33443d;position:relative;transition:background .2s;
+}
+.switch::after{
+  content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;
+  transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.4);
+}
+.toggle[aria-checked="true"]{border-color:rgba(63,193,135,.55)}
+.toggle[aria-checked="true"] .switch{background:var(--accent)}
+.toggle[aria-checked="true"] .switch::after{transform:translateX(22px)}
+
+/* Receipt */
+.receipt{
+  position:relative;background:var(--paper);color:var(--paper-ink);
+  border-radius:6px 6px 0 0;padding:1.3rem 1.2rem 1.6rem;
+  box-shadow:0 22px 40px -22px rgba(0,0,0,.8);
+  font-family:var(--mono);
+}
+.receipt::after{
+  content:"";position:absolute;left:0;right:0;bottom:-11px;height:12px;
+  background:
+    linear-gradient(135deg,var(--paper) 50%,transparent 50%) 0 0/16px 12px repeat-x,
+    linear-gradient(225deg,var(--paper) 50%,transparent 50%) 0 0/16px 12px repeat-x;
+}
+@media (min-width:820px){.receipt{position:sticky;top:5.5rem}}
+.r-head{text-align:center;font-size:.72rem;letter-spacing:.24em;text-transform:uppercase;color:var(--paper-mute);padding-bottom:.75rem;border-bottom:1.5px dashed #cfc6ae}
+.r-rows{padding:.8rem 0;border-bottom:1.5px dashed #cfc6ae}
+.r-row{display:flex;justify-content:space-between;gap:1rem;padding:.25rem 0;font-size:1rem}
+.r-row span:first-child{color:var(--paper-mute)}
+.r-row b{font-weight:600}
+.r-row.total{font-size:1.15rem;padding-top:.5rem}
+.r-row.total span:first-child{color:var(--paper-ink);font-weight:600}
+.r-share{text-align:center;padding:1.1rem 0 .4rem}
+.r-share .cap{font-size:.74rem;letter-spacing:.2em;text-transform:uppercase;color:var(--paper-mute)}
+.r-share .big{
+  display:block;font-family:var(--sans);font-weight:700;letter-spacing:-.03em;line-height:1;
+  font-size:clamp(3rem,15vw,4.6rem);color:var(--accent-d);margin:.35rem 0 .3rem;
+  word-break:break-all;
+}
+.r-share .sub{font-size:.85rem;color:var(--paper-mute);min-height:1.3em}
+.r-note{
+  margin-top:.6rem;padding:.6rem .7rem;border-radius:8px;background:#e7f2ea;color:#1d5a3e;
+  font-size:.84rem;text-align:center;
+}
+.r-note[hidden]{display:none}
+.r-empty{text-align:center;color:var(--paper-mute);font-size:.9rem;padding:.4rem 0 0}
+.bump{animation:bump .25s ease}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.04)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.bump{animation:none}*{transition:none!important}}
+
+/* Footer */
+footer{
+  text-align:center;color:var(--muted);font-size:.85rem;
+  padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom));border-top:1px solid var(--line);
+}
+footer a{color:var(--accent-l);text-decoration:none;display:inline-flex;align-items:center;min-height:44px}
+footer a:hover{text-decoration:underline}
+
+/* Modal */
+.backdrop{
+  position:fixed;inset:0;background:rgba(5,9,8,.7);display:flex;align-items:flex-end;justify-content:center;
+  z-index:20;opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.backdrop.open{opacity:1;pointer-events:auto}
+.sheet{
+  width:100%;max-width:460px;background:var(--ink-2);border:1px solid var(--line);
+  border-radius:20px 20px 0 0;padding:1.2rem 1.1rem calc(1.2rem + env(safe-area-inset-bottom));
+  transform:translateY(24px);transition:transform .2s;max-height:90dvh;overflow:auto;
+}
+.backdrop.open .sheet{transform:none}
+@media (min-width:600px){.backdrop{align-items:center}.sheet{border-radius:20px}}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.sheet-head h2{margin:0;font-size:1.2rem}
+.x{min-width:44px;min-height:44px;border:0;background:transparent;color:var(--muted);font-size:1.5rem;border-radius:10px}
+.x:hover{color:var(--text);background:rgba(255,255,255,.06)}
+.set-row + .set-row{margin-top:1.1rem}
+.set-input{
+  width:100%;min-height:50px;border-radius:12px;border:1.5px solid var(--line);background:var(--ink);
+  padding:0 .9rem;font-family:var(--mono);font-size:1.05rem;outline:none;
+}
+.set-input:focus{border-color:var(--accent-l)}
+select.set-input{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%;background-size:6px 6px;background-repeat:no-repeat}
+.set-help{font-size:.8rem;color:var(--muted);margin-top:.35rem}
+.btn{
+  width:100%;min-height:50px;border-radius:12px;border:1.5px solid var(--line);background:var(--ink);font-weight:600;
+}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;margin-top:1.3rem}
+.btn.primary:hover{background:var(--accent-l)}
+.btn.danger{color:var(--danger);border-color:rgba(224,102,79,.45);margin-top:.6rem}
+.btn.danger.armed{background:var(--danger);color:#fff;border-color:var(--danger)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <span class="num">156</span>
+  <span class="name">Tip Splitter</span>
+  <a href="https://augustineiacopelli.github.io/appaday/">AppADay Portfolio</a>
+  <button type="button" class="gear" id="gearBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+</header>
+
+<main>
+  <section class="card" aria-label="Check details">
+    <div class="field">
+      <div class="label"><label for="bill">Bill total</label><span class="hint">before tip</span></div>
+      <div class="bill-wrap">
+        <span class="cur" id="billCur" aria-hidden="true">$</span>
+        <input id="bill" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-describedby="billCur">
+        <button type="button" class="clear-bill" id="clearBill" aria-label="Clear bill" hidden>&times;</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label"><span id="tipLbl">Tip</span><span class="hint" id="tipNow">20%</span></div>
+      <div class="chips" role="group" aria-labelledby="tipLbl">
+        <button type="button" class="chip" data-pct="15" aria-pressed="false">15%</button>
+        <button type="button" class="chip" data-pct="18" aria-pressed="false">18%</button>
+        <button type="button" class="chip" data-pct="20" aria-pressed="false">20%</button>
+        <button type="button" class="chip" data-pct="25" aria-pressed="false">25%</button>
+      </div>
+      <div class="custom" id="customWrap">
+        <label for="customTip">Custom</label>
+        <input id="customTip" type="text" inputmode="decimal" autocomplete="off" placeholder="other">
+        <span class="pct" aria-hidden="true">%</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label"><span id="partyLbl">Party size</span></div>
+      <div class="stepper" role="group" aria-labelledby="partyLbl">
+        <button type="button" class="step" id="minus" aria-label="One fewer person">&minus;</button>
+        <div class="party" aria-live="polite"><b id="partyNum">1</b><span id="partyWord">person</span></div>
+        <button type="button" class="step" id="plus" aria-label="One more person">+</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <button type="button" class="toggle" id="roundBtn" role="switch" aria-checked="false">
+        <span class="t-text"><b>Round up each share</b><span>To the next whole dollar, extra goes to the tip</span></span>
+        <span class="switch" aria-hidden="true"></span>
+      </button>
+    </div>
+  </section>
+
+  <section class="receipt" aria-label="Results" aria-live="polite">
+    <div class="r-head">Check split</div>
+    <div class="r-rows">
+      <div class="r-row"><span>Subtotal</span><b id="outBill">$0.00</b></div>
+      <div class="r-row"><span id="outTipLbl">Tip 20%</span><b id="outTip">$0.00</b></div>
+      <div class="r-row total"><span>Grand total</span><b id="outTotal">$0.00</b></div>
+    </div>
+    <div class="r-share">
+      <span class="cap" id="shareCap">Each person pays</span>
+      <span class="big" id="outShare">$0.00</span>
+      <div class="sub" id="shareSub"></div>
+      <div class="r-note" id="roundNote" hidden></div>
+      <div class="r-empty" id="emptyNote">Enter the bill to see the split.</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  AppADay 156 &middot; <a href="https://augustineiacopelli.github.io/appaday/">Back to the AppADay Portfolio</a>
+</footer>
+
+<div class="backdrop" id="settings" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="sheet-head">
+      <h2 id="setTitle">Settings</h2>
+      <button type="button" class="x" id="closeSet" aria-label="Close settings">&times;</button>
+    </div>
+    <div class="set-row">
+      <div class="label"><label for="setDefault">Default tip percent</label></div>
+      <input class="set-input" id="setDefault" type="text" inputmode="decimal" autocomplete="off">
+      <div class="set-help">Used every time the app opens. Anything from 0 to 100.</div>
+    </div>
+    <div class="set-row">
+      <div class="label"><label for="setCur">Currency symbol</label></div>
+      <select class="set-input" id="setCur"></select>
+    </div>
+    <button type="button" class="btn primary" id="saveSet">Save settings</button>
+    <button type="button" class="btn danger" id="resetBtn">Reset everything</button>
+    <div class="set-help" id="resetHelp">Clears saved settings and the current check.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var KEY = 'appaday-156-settings';
+  var CHIPS = [15, 18, 20, 25];
+  var CURRENCIES = ['$', '\u20AC', '\u00A3', '\u00A5', '\u20B9', '\u20A9', 'R$', 'kr', 'Fr'];
+  var DEFAULTS = { tipBp: 2000, cur: '$' };
+  var MAX_BILL_CENTS = 9999999999;
+
+  function $(id){ return document.getElementById(id); }
+
+  /* ---------- storage ---------- */
+  function loadSettings(){
+    var s = { tipBp: DEFAULTS.tipBp, cur: DEFAULTS.cur };
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var p = JSON.parse(raw);
+        if (p && typeof p.tipBp === 'number' && p.tipBp >= 0 && p.tipBp <= 10000) s.tipBp = Math.round(p.tipBp);
+        if (p && typeof p.cur === 'string' && CURRENCIES.indexOf(p.cur) !== -1) s.cur = p.cur;
+      }
+    } catch (e) {}
+    return s;
+  }
+  function saveSettings(s){
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+  }
+  function clearSettings(){
+    try { localStorage.removeItem(KEY); } catch (e) {}
+  }
+
+  /* ---------- parsing (string based, no floats) ---------- */
+  // Keep digits and a single dot, limit decimals and integer length.
+  function sanitize(str, maxInt, maxDec){
+    str = String(str).replace(/,/g, '.').replace(/[^0-9.]/g, '');
+    var dot = str.indexOf('.');
+    var whole = dot === -1 ? str : str.slice(0, dot);
+    var frac = dot === -1 ? '' : str.slice(dot + 1).replace(/\./g, '');
+    whole = whole.replace(/^0+(?=\d)/, '').slice(0, maxInt);
+    frac = frac.slice(0, maxDec);
+    return dot === -1 ? whole : (whole === '' ? '0' : whole) + '.' + frac;
+  }
+  // "12.5" with scale 2 -> 1250 ; returns integer
+  function toScaled(str, scale){
+    if (!str) return 0;
+    var parts = str.split('.');
+    var whole = parts[0] || '0';
+    var frac = (parts[1] || '');
+    while (frac.length < scale) frac += '0';
+    frac = frac.slice(0, scale);
+    return parseInt(whole, 10) * Math.pow(10, scale) + (frac ? parseInt(frac, 10) : 0);
+  }
+  function bpToText(bp){
+    var w = Math.floor(bp / 100), f = bp % 100;
+    if (f === 0) return String(w);
+    var fs = (f < 10 ? '0' : '') + f;
+    return w + '.' + fs.replace(/0$/, '');
+  }
+
+  /* ---------- money ---------- */
+  function money(cents){
+    var neg = cents < 0; cents = Math.abs(cents);
+    var w = Math.floor(cents / 100), f = cents % 100;
+    var ws = String(w).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (neg ? '-' : '') + state.cur + ws + '.' + (f < 10 ? '0' : '') + f;
+  }
+  // Pure split math, all integers. Exposed for testing.
+  function compute(billCents, tipBp, people, roundUp){
+    var tip = Math.round(billCents * tipBp / 10000);
+    var total = billCents + tip;
+    var r = { bill: billCents, tip: tip, total: total, people: people, rounded: false };
+    if (roundUp && billCents > 0) {
+      var unit = people * 100;
+      var share = Math.ceil(total / unit) * 100;
+      r.rounded = true;
+      r.share = share;
+      r.total = share * people;
+      r.tip = r.total - billCents;
+      r.extra = r.total - total;
+      r.effBp = Math.round(r.tip * 10000 / billCents);
+      r.high = share; r.highCount = people; r.low = share; r.lowCount = 0;
+    } else {
+      var base = Math.floor(total / people);
+      var rem = total - base * people;
+      r.share = rem ? base + 1 : base;
+      r.high = base + 1; r.highCount = rem;
+      r.low = base; r.lowCount = people - rem;
+      r.effBp = tipBp;
+    }
+    return r;
+  }
+
+  /* ---------- state ---------- */
+  var settings = loadSettings();
+  var state = {
+    billCents: 0,
+    tipBp: settings.tipBp,
+    people: 1,
+    roundUp: false,
+    cur: settings.cur
+  };
+
+  var billEl = $('bill'), customEl = $('customTip');
+  var chipEls = document.querySelectorAll('.chip');
+
+  function setTipUI(){
+    var matched = false;
+    for (var i = 0; i < chipEls.length; i++) {
+      var on = parseInt(chipEls[i].getAttribute('data-pct'), 10) * 100 === state.tipBp && customEl.value === '';
+      if (on) matched = true;
+      chipEls[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    $('customWrap').classList.toggle('active', !matched);
+    $('tipNow').textContent = bpToText(state.tipBp) + '%';
+  }
+
+  function applyDefaultTip(){
+    var isChip = CHIPS.indexOf(state.tipBp / 100) !== -1;
+    customEl.value = isChip ? '' : bpToText(state.tipBp);
+    setTipUI();
+  }
+
+  var lastShareText = '';
+  function render(){
+    var r = compute(state.billCents, state.tipBp, state.people, state.roundUp);
+    $('billCur').textContent = state.cur;
+    $('outBill').textContent = money(r.bill);
+    $('outTipLbl').textContent = 'Tip ' + bpToText(r.effBp) + '%' + (r.rounded ? ' eff.' : '');
+    $('outTip').textContent = money(r.tip);
+    $('outTotal').textContent = money(r.total);
+
+    var shareText = money(r.share);
+    var shareEl = $('outShare');
+    shareEl.textContent = shareText;
+    if (shareText !== lastShareText) {
+      shareEl.classList.remove('bump');
+      void shareEl.offsetWidth;
+      shareEl.classList.add('bump');
+      lastShareText = shareText;
+    }
+
+    $('shareCap').textContent = state.people === 1 ? 'You pay' : 'Each person pays';
+    var sub = '';
+    if (state.billCents > 0 && !r.rounded && r.highCount > 0 && r.lowCount > 0) {
+      sub = r.highCount + (r.highCount === 1 ? ' pays ' : ' pay ') + money(r.high) + ', ' + r.lowCount + (r.lowCount === 1 ? ' pays ' : ' pay ') + money(r.low) + ' so it comes out exact';
+    } else if (state.billCents > 0 && state.people > 1) {
+      sub = 'Split ' + state.people + ' ways';
+    }
+    $('shareSub').textContent = sub;
+
+    var note = $('roundNote');
+    if (r.rounded) {
+      note.hidden = false;
+      note.textContent = r.extra > 0
+        ? 'Rounding adds ' + money(r.extra) + '. Effective tip is ' + bpToText(r.effBp) + '% instead of ' + bpToText(state.tipBp) + '%.'
+        : 'Already an even dollar amount. Effective tip stays ' + bpToText(r.effBp) + '%.';
+    } else {
+      note.hidden = true;
+    }
+    $('emptyNote').hidden = state.billCents > 0;
+    if (state.billCents === 0) note.hidden = true;
+
+    $('partyNum').textContent = state.people;
+    $('partyWord').textContent = state.people === 1 ? 'person' : 'people';
+    $('minus').disabled = state.people <= 1;
+    $('plus').disabled = state.people >= 99;
+    $('clearBill').hidden = billEl.value === '';
+    var rb = $('roundBtn');
+    rb.setAttribute('aria-checked', state.roundUp ? 'true' : 'false');
+  }
+
+  /* ---------- inputs ---------- */
+  billEl.addEventListener('input', function(){
+    var clean = sanitize(billEl.value, 8, 2);
+    if (clean !== billEl.value) billEl.value = clean;
+    state.billCents = Math.min(toScaled(clean, 2), MAX_BILL_CENTS);
+    render();
+  });
+  $('clearBill').addEventListener('click', function(){
+    billEl.value = '';
+    state.billCents = 0;
+    render();
+    billEl.focus();
+  });
+
+  for (var i = 0; i < chipEls.length; i++) {
+    chipEls[i].addEventListener('click', function(){
+      state.tipBp = parseInt(this.getAttribute('data-pct'), 10) * 100;
+      customEl.value = '';
+      setTipUI();
+      render();
+    });
+  }
+  customEl.addEventListener('input', function(){
+    var clean = sanitize(customEl.value, 3, 2);
+    if (clean !== customEl.value) customEl.value = clean;
+    if (clean === '') {
+      state.tipBp = settings.tipBp;
+      if (CHIPS.indexOf(state.tipBp / 100) === -1) state.tipBp = 2000;
+    } else {
+      state.tipBp = Math.min(toScaled(clean, 2), 10000);
+    }
+    setTipUI();
+    render();
+  });
+  customEl.addEventListener('blur', function(){
+    if (customEl.value === '') return;
+    var asChip = CHIPS.indexOf(state.tipBp / 100) !== -1;
+    customEl.value = asChip ? '' : bpToText(state.tipBp);
+    setTipUI();
+  });
+
+  $('minus').addEventListener('click', function(){
+    if (state.people > 1) { state.people--; render(); }
+  });
+  $('plus').addEventListener('click', function(){
+    if (state.people < 99) { state.people++; render(); }
+  });
+  $('roundBtn').addEventListener('click', function(){
+    state.roundUp = !state.roundUp;
+    render();
+  });
+
+  /* ---------- settings modal ---------- */
+  var modal = $('settings'), lastFocus = null;
+  var curSel = $('setCur');
+  CURRENCIES.forEach(function(c){
+    var o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    curSel.appendChild(o);
+  });
+
+  function openSettings(){
+    lastFocus = document.activeElement;
+    $('setDefault').value = bpToText(settings.tipBp);
+    curSel.value = settings.cur;
+    disarmReset();
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    setTimeout(function(){ $('setDefault').focus(); }, 60);
+  }
+  function closeSettings(){
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    disarmReset();
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  $('gearBtn').addEventListener('click', openSettings);
+  $('closeSet').addEventListener('click', closeSettings);
+  modal.addEventListener('click', function(e){ if (e.target === modal) closeSettings(); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && modal.classList.contains('open')) closeSettings();
+  });
+  $('setDefault').addEventListener('input', function(){
+    var el = $('setDefault');
+    var clean = sanitize(el.value, 3, 2);
+    if (clean !== el.value) el.value = clean;
+  });
+
+  $('saveSet').addEventListener('click', function(){
+    var raw = $('setDefault').value;
+    var bp = raw === '' ? DEFAULTS.tipBp : Math.min(toScaled(raw, 2), 10000);
+    settings = { tipBp: bp, cur: CURRENCIES.indexOf(curSel.value) !== -1 ? curSel.value : '$' };
+    saveSettings(settings);
+    state.cur = settings.cur;
+    state.tipBp = settings.tipBp;
+    applyDefaultTip();
+    render();
+    closeSettings();
+  });
+
+  /* Two step reset, no native confirm dialog */
+  var armTimer = null;
+  function disarmReset(){
+    clearTimeout(armTimer);
+    var b = $('resetBtn');
+    b.classList.remove('armed');
+    b.textContent = 'Reset everything';
+    $('resetHelp').textContent = 'Clears saved settings and the current check.';
+  }
+  $('resetBtn').addEventListener('click', function(){
+    var b = $('resetBtn');
+    if (!b.classList.contains('armed')) {
+      b.classList.add('armed');
+      b.textContent = 'Tap again to reset';
+      $('resetHelp').textContent = 'This cannot be undone.';
+      armTimer = setTimeout(disarmReset, 4000);
+      return;
+    }
+    clearSettings();
+    settings = { tipBp: DEFAULTS.tipBp, cur: DEFAULTS.cur };
+    state.billCents = 0; state.people = 1; state.roundUp = false;
+    state.tipBp = settings.tipBp; state.cur = settings.cur;
+    billEl.value = '';
+    applyDefaultTip();
+    render();
+    closeSettings();
+  });
+
+  /* ---------- init ---------- */
+  applyDefaultTip();
+  render();
+  window.TipSplitter = { compute: compute, sanitize: sanitize, toScaled: toScaled, bpToText: bpToText };
+})();
+</script>
+</body>
+</html>
